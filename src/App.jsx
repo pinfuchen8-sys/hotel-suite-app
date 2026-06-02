@@ -16,8 +16,7 @@ const LANG = {
     apply: "套用", clear: "清除", nights: "晚", total: "總計",
     back: "返回", viewDetails: "查看詳情", worldMap: "地圖",
     markFav: "收藏", allStars: "全部", cancelBooking: "取消預訂",
-    booked: "已預訂", confirmCancel: "確定取消此預訂？",
-    yes: "確定", no: "保留",
+    booked: "已預訂", confirmCancel: "確定取消此預訂？", yes: "確定", no: "保留",
   },
   en: {
     appName: "LuxSuite", tagline: "Premium Suite Booking", search: "Search", city: "City",
@@ -34,8 +33,7 @@ const LANG = {
     apply: "Apply", clear: "Clear", nights: "nights", total: "Total",
     back: "Back", viewDetails: "View Details", worldMap: "Map",
     markFav: "Save", allStars: "All", cancelBooking: "Cancel Booking",
-    booked: "Booked", confirmCancel: "Cancel this booking?",
-    yes: "Yes", no: "Keep",
+    booked: "Booked", confirmCancel: "Cancel this booking?", yes: "Yes", no: "Keep",
   }
 };
 
@@ -51,7 +49,7 @@ const HOTELS = [
   { id:2, name:{zh:"東京半島酒店",en:"The Peninsula Tokyo"}, city:{zh:"東京",en:"Tokyo"}, cityKey:"tokyo", stars:5, rating:4.9, reviewCount:3102, pricePerNight:32000, distanceKm:0.8, lat:35.6762, lng:139.7503,
     images:["https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80","https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80","https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=800&q=80"],
     amenities:[0,1,2,3,7],
-    description:{zh:"坐落於日比谷公園旁，融合日式精緻美學與西方豪華設施，是東京最受追捧的頂級住宿。",en:"Overlooking Hibiya Park, blending Japanese aesthetics with Western luxury — Tokyo's most sought-after address."},
+    description:{zh:"坐落於日比谷公園旁，融合日式精緻美學與西方豪華設施，是東京最受追捧的頂級住宿。",en:"Overlooking Hibiya Park, blending Japanese aesthetics with Western luxury."},
     rooms:[{name:{zh:"都市景觀套房",en:"City View Suite"},price:32000,available:true},{name:{zh:"灣景套房",en:"Bay View Suite"},price:45000,available:true},{name:{zh:"皇家套房",en:"Royal Suite"},price:120000,available:false}],
     reviews:[{name:"Julia K.",rating:5,date:"2025-11",text:{zh:"東京最頂級的住宿體驗！",en:"The pinnacle of Tokyo accommodation!"},avatar:"JK"}],
     nearby:[{zh:"皇居 (1.0 km)",en:"Imperial Palace (1.0 km)"},{zh:"銀座 (0.6 km)",en:"Ginza (0.6 km)"}]
@@ -181,19 +179,19 @@ const NOTIFS_INIT = [
   {id:5,type:"offer",icon:"★",color:"#533AB7",bg:"#EEEDFE",titleZh:"會員專屬優惠",titleEn:"Member Exclusive",msgZh:"黃金會員可享免費升等至行政套房",msgEn:"Gold members get a free upgrade to Executive Suite",time:"2天前"},
 ];
 
-// Google Maps 風格世界地圖
+// 唯一的投影函式，放在元件外部避免重複宣告
+function mercatorProject(lat, lng, W, H) {
+  const x = ((lng + 180) / 360) * W;
+  const latRad = (lat * Math.PI) / 180;
+  const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+  const y = (0.5 - mercN / (2 * Math.PI)) * H * 1.4 + H * 0.1;
+  return { x, y };
+}
+
 function GoogleStyleMap({ hotels, onSelect, selected, lang }) {
   const canvasRef = useRef(null);
   const [hoveredId, setHoveredId] = useState(null);
   const gold = "#B8913A";
-
-  const project = (lat, lng, W, H) => {
-    const x = ((lng + 180) / 360) * W;
-    const latRad = (lat * Math.PI) / 180;
-    const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
-    const y = (0.5 - mercN / (2 * Math.PI)) * H * 1.4 + H * 0.1;
-    return { x, y };
-  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -201,138 +199,136 @@ function GoogleStyleMap({ hotels, onSelect, selected, lang }) {
     const ctx = canvas.getContext("2d");
     const W = canvas.width, H = canvas.height;
 
-    // 背景 - 海洋漸層
+    // 海洋背景
     const oceanGrad = ctx.createLinearGradient(0, 0, 0, H);
-    oceanGrad.addColorStop(0, "#1a3a6b");
-    oceanGrad.addColorStop(0.5, "#1e4d8c");
-    oceanGrad.addColorStop(1, "#1a3a6b");
+    oceanGrad.addColorStop(0, "#0d2b4e");
+    oceanGrad.addColorStop(0.5, "#1a3f6b");
+    oceanGrad.addColorStop(1, "#0d2b4e");
     ctx.fillStyle = oceanGrad;
     ctx.fillRect(0, 0, W, H);
 
     // 網格線
-    ctx.strokeStyle = "rgba(255,255,255,0.06)";
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
     ctx.lineWidth = 0.5;
-    for (let lng = -180; lng <= 180; lng += 30) {
-      const {x} = project(0, lng, W, H);
+    for (let lng2 = -180; lng2 <= 180; lng2 += 30) {
+      const { x } = mercatorProject(0, lng2, W, H);
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
     }
-    for (let lat = -60; lat <= 80; lat += 30) {
-      const {y} = project(lat, 0, W, H);
+    for (let lat2 = -60; lat2 <= 80; lat2 += 30) {
+      const { y } = mercatorProject(lat2, 0, W, H);
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
     }
 
-    // 陸地顏色
-    const landColor = "#2d6a4f";
-    const landLight = "#40916c";
-    const drawLand = (pts, color = landColor) => {
+    const drawPoly = (pts) => {
       ctx.beginPath();
-      pts.forEach(([la,ln], i) => {
-        const {x,y} = project(la, ln, W, H);
-        i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      pts.forEach(([la, ln], i) => {
+        const { x, y } = mercatorProject(la, ln, W, H);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       });
       ctx.closePath();
-      const grad = ctx.createLinearGradient(0,0,W,H);
-      grad.addColorStop(0, color);
-      grad.addColorStop(1, landLight);
-      ctx.fillStyle = grad;
+      const g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, "#2d6a4f");
+      g.addColorStop(1, "#40916c");
+      ctx.fillStyle = g;
       ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.15)";
-      ctx.lineWidth = 0.5;
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.lineWidth = 0.4;
       ctx.stroke();
     };
 
-    // 主要大陸
-    drawLand([[70,-140],[70,-55],[50,-55],[25,-80],[8,-77],[8,-35],[-5,-35],[-55,-35],[-55,-70],[-20,-70],[-20,-45],[8,-50],[8,-77],[25,-80],[50,-55],[70,-55],[70,-140]]);// 美洲
-    drawLand([[35,-10],[70,-10],[70,40],[55,40],[40,35],[35,25],[28,35],[10,15],[-35,18],[-35,50],[10,50],[28,35],[35,25],[40,35],[55,40],[70,40],[70,-10],[35,-10]]); // 歐非
-    drawLand([[70,25],[70,180],[55,145],[40,130],[25,120],[10,105],[0,100],[-10,115],[-10,145],[-45,170],[-45,115],[-10,115],[0,100],[10,105],[25,120],[40,130],[55,145],[70,180],[70,25]]); // 亞洲+澳洲
-    drawLand([[-15,115],[-40,115],[-40,153],[-15,153],[-15,115]]); // 澳洲
-    drawLand([[75,-10],[85,60],[75,100],[75,-10]]); // 西伯利亞
-    drawLand([[35,-8],[44,28],[30,32],[28,35],[10,15],[-2,10],[-2,-15],[6,-15],[6,-3],[16,-3],[16,15],[35,-8]]); // 非洲詳細
-    drawLand([[50,-130],[60,-130],[60,-115],[50,-115],[50,-130]]); // 不列顛哥倫比亞
-
+    // 北美洲
+    drawPoly([[70,-140],[70,-55],[50,-55],[25,-80],[8,-77],[8,-35],[-5,-35],[-55,-35],[-55,-70],[-20,-70],[-20,-45],[8,-50],[25,-80],[50,-55],[70,-55],[70,-140]]);
+    // 歐洲
+    drawPoly([[35,-10],[70,-10],[70,40],[55,40],[40,35],[35,25],[28,35],[10,15],[-2,10],[35,-10]]);
+    // 非洲
+    drawPoly([[35,-8],[10,15],[-2,10],[-35,18],[-35,50],[10,50],[28,35],[40,35],[35,25],[28,35],[35,-8]]);
+    // 亞洲
+    drawPoly([[70,25],[70,145],[55,145],[40,130],[25,120],[10,105],[0,100],[10,105],[25,120],[40,130],[55,145],[70,145],[70,25]]);
+    // 중동
+    drawPoly([[35,25],[40,35],[55,40],[64,22],[60,14],[50,12],[35,25]]);
+    // 동남아
+    drawPoly([[25,100],[10,100],[0,100],[10,105],[25,120],[25,100]]);
+    // 澳洲
+    drawPoly([[-15,114],[-38,114],[-38,154],[-15,154],[-15,114]]);
+    // 南美洲
+    drawPoly([[8,-77],[8,-35],[-55,-35],[-55,-68],[-20,-68],[-20,-45],[8,-50],[8,-77]]);
     // 日本
-    ctx.beginPath(); ctx.ellipse(...Object.values(project(35,136,W,H)), 4, 8, -0.3, 0, Math.PI*2);
-    ctx.fillStyle = landColor; ctx.fill(); ctx.strokeStyle="rgba(255,255,255,0.2)"; ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(...Object.values(mercatorProject(36, 137, W, H)), 5, 9, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = "#2d6a4f"; ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 0.5; ctx.stroke();
     // 英國
-    ctx.beginPath(); ctx.ellipse(...Object.values(project(54,-2,W,H)), 3, 5, 0, 0, Math.PI*2);
-    ctx.fillStyle = landColor; ctx.fill(); ctx.stroke();
-    // 斯里蘭卡
-    ctx.beginPath(); ctx.arc(...Object.values(project(8,81,W,H)), 2, 0, Math.PI*2);
-    ctx.fillStyle = landColor; ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(...Object.values(mercatorProject(54, -2, W, H)), 3, 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#2d6a4f"; ctx.fill(); ctx.stroke();
+    // 뉴질랜드
+    ctx.beginPath();
+    ctx.ellipse(...Object.values(mercatorProject(-40, 172, W, H)), 2, 5, 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = "#2d6a4f"; ctx.fill(); ctx.stroke();
 
     // 飯店標記
     hotels.forEach(h => {
-      const {x, y} = project(h.lat, h.lng, W, H);
+      const { x, y } = mercatorProject(h.lat, h.lng, W, H);
       const isSel = selected?.id === h.id;
       const isHov = hoveredId === h.id;
 
-      // 脈衝圈
       if (isSel) {
-        ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI*2);
-        ctx.fillStyle = "rgba(184,145,58,0.15)"; ctx.fill();
-        ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI*2);
-        ctx.fillStyle = "rgba(184,145,58,0.25)"; ctx.fill();
+        ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(184,145,58,0.12)"; ctx.fill();
+        ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(184,145,58,0.22)"; ctx.fill();
       }
 
-      // 外圈
-      ctx.beginPath(); ctx.arc(x, y, isSel ? 8 : isHov ? 7 : 6, 0, Math.PI*2);
-      ctx.fillStyle = isSel ? gold : isHov ? "#FF8C42" : "#FF5252";
+      ctx.beginPath();
+      ctx.arc(x, y, isSel ? 9 : isHov ? 8 : 6, 0, Math.PI * 2);
+      ctx.fillStyle = isSel ? gold : isHov ? "#FF8C42" : "#FF4444";
       ctx.fill();
       ctx.strokeStyle = "#fff";
-      ctx.lineWidth = isSel ? 2 : 1.5;
+      ctx.lineWidth = isSel ? 2.5 : 1.5;
       ctx.stroke();
 
-      // 內點
-      ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI*2);
+      ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2);
       ctx.fillStyle = "#fff"; ctx.fill();
 
-      // 選中標籤
       if (isSel) {
         const label = h.name[lang];
         ctx.font = "bold 10px sans-serif";
         const tw = ctx.measureText(label).width;
-        const px = Math.min(Math.max(x - tw/2 - 6, 2), W - tw - 14);
-        const py = y - 22;
-        ctx.fillStyle = "rgba(13,27,42,0.92)";
+        const bx = Math.min(Math.max(x - tw / 2 - 7, 2), W - tw - 16);
+        const by = y - 24;
+        ctx.fillStyle = "rgba(13,27,42,0.93)";
         ctx.beginPath();
-        ctx.roundRect(px, py-12, tw+12, 16, 4);
+        ctx.roundRect(bx, by - 12, tw + 14, 17, 5);
         ctx.fill();
         ctx.fillStyle = gold;
-        ctx.fillText(label, px+6, py);
+        ctx.fillText(label, bx + 7, by);
       }
     });
   }, [hotels, selected, hoveredId, lang]);
 
   const getHotelAt = (e) => {
     const canvas = canvasRef.current;
+    if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
     const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
     const my = (e.clientY - rect.top) * (canvas.height / rect.height);
     const W = canvas.width, H = canvas.height;
     return hotels.find(h => {
-      const {x, y} = project(h.lat, h.lng, W, H);
-      return Math.hypot(mx-x, my-y) < 12;
+      const { x, y } = mercatorProject(h.lat, h.lng, W, H);
+      return Math.hypot(mx - x, my - y) < 14;
     });
   };
 
-  const project = (lat, lng, W, H) => {
-    const x = ((lng + 180) / 360) * W;
-    const latRad = (lat * Math.PI) / 180;
-    const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
-    const y = (0.5 - mercN / (2 * Math.PI)) * H * 1.4 + H * 0.1;
-    return { x, y };
-  };
-
   return (
-    <div style={{borderRadius:16,overflow:"hidden",boxShadow:"0 4px 24px rgba(13,27,42,0.25)",position:"relative"}}>
+    <div style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 24px rgba(13,27,42,0.3)", position: "relative" }}>
       <canvas
         ref={canvasRef} width={760} height={380}
-        style={{width:"100%",display:"block",cursor:"pointer"}}
+        style={{ width: "100%", display: "block", cursor: "pointer" }}
         onClick={e => { const h = getHotelAt(e); if (h) onSelect(h); }}
         onMouseMove={e => { const h = getHotelAt(e); setHoveredId(h?.id || null); }}
         onMouseLeave={() => setHoveredId(null)}
       />
-      <div style={{position:"absolute",top:10,left:10,background:"rgba(13,27,42,0.8)",borderRadius:8,padding:"4px 10px",fontSize:11,color:"rgba(255,255,255,0.7)",fontFamily:"sans-serif"}}>
+      <div style={{ position: "absolute", top: 10, left: 10, background: "rgba(13,27,42,0.82)", borderRadius: 8, padding: "4px 10px", fontSize: 11, color: "rgba(255,255,255,0.75)", fontFamily: "sans-serif" }}>
         🌍 {hotels.length} hotels
       </div>
     </div>
@@ -348,7 +344,7 @@ export default function App() {
   const [notifs, setNotifs] = useState(NOTIFS_INIT);
   const [toast, setToast] = useState(null);
   const [imgIdx, setImgIdx] = useState(0);
-  const [filters, setFilters] = useState({city:"all",stars:"all",maxPrice:1000000,maxDist:10,amenities:[]});
+  const [filters, setFilters] = useState({ city: "all", stars: "all", maxPrice: 1000000, maxDist: 10, amenities: [] });
   const [sortIdx, setSortIdx] = useState(0);
   const [searchCity, setSearchCity] = useState("all");
   const [checkIn, setCheckIn] = useState("");
@@ -363,305 +359,302 @@ export default function App() {
   const deepNavy = "#0D1B2A";
   const cream = "#FAF7F2";
 
-  const showToast = (msg, isError=false) => {
-    setToast({msg, isError});
+  const showToast = (msg, isError = false) => {
+    setToast({ msg, isError });
     setTimeout(() => setToast(null), 3000);
   };
 
   const handleBook = (hotel, room) => {
     const key = `${hotel.id}-${room.name.en}`;
-    if (bookings.find(b => b.key===key)) { showToast(t.duplicateMsg, true); return; }
+    if (bookings.find(b => b.key === key)) { showToast(t.duplicateMsg, true); return; }
     if (!room.available) return;
-    const newBooking = {key, hotel, room, checkIn, checkOut, guests, bookedAt: new Date().toISOString()};
-    setBookings(prev => [...prev, newBooking]);
+    setBookings(prev => [...prev, { key, hotel, room, checkIn, checkOut, guests }]);
     showToast(t.confirmMsg);
-    const newNotif = {
-      id: Date.now(), type:"confirm", icon:"✓", color:"#0a7c5c", bg:"#e1f5ee",
-      titleZh:"預訂確認", titleEn:"Booking Confirmed",
-      msgZh:`您的${hotel.name.zh} ${room.name.zh}已確認預訂`,
-      msgEn:`${hotel.name.en} ${room.name.en} booking confirmed`,
-      time: lang==="zh"?"剛剛":"Just now"
-    };
-    setNotifs(prev => [newNotif, ...prev]);
+    setNotifs(prev => [{
+      id: Date.now(), type: "confirm", icon: "✓", color: "#0a7c5c", bg: "#e1f5ee",
+      titleZh: "預訂確認", titleEn: "Booking Confirmed",
+      msgZh: `您的${hotel.name.zh} ${room.name.zh}已確認預訂`,
+      msgEn: `${hotel.name.en} ${room.name.en} booking confirmed`,
+      time: lang === "zh" ? "剛剛" : "Just now"
+    }, ...prev]);
   };
 
   const handleCancel = (key) => {
-    setBookings(prev => prev.filter(b => b.key!==key));
+    setBookings(prev => prev.filter(b => b.key !== key));
     setCancelTarget(null);
     showToast(t.cancelMsg);
   };
 
-  const toggleFav = (id) => setFavorites(prev => prev.includes(id)?prev.filter(f=>f!==id):[...prev,id]);
+  const toggleFav = (id) => setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
 
   const filtered = HOTELS.filter(h => {
-    if (searchCity!=="all" && h.cityKey!==searchCity) return false;
-    if (filters.city!=="all" && h.cityKey!==filters.city) return false;
-    if (filters.stars!=="all" && h.stars!==parseInt(filters.stars)) return false;
-    if (h.pricePerNight>filters.maxPrice) return false;
-    if (h.distanceKm>filters.maxDist) return false;
-    if (filters.amenities.length>0 && !filters.amenities.every(a=>h.amenities.includes(a))) return false;
+    if (searchCity !== "all" && h.cityKey !== searchCity) return false;
+    if (filters.city !== "all" && h.cityKey !== filters.city) return false;
+    if (filters.stars !== "all" && h.stars !== parseInt(filters.stars)) return false;
+    if (h.pricePerNight > filters.maxPrice) return false;
+    if (h.distanceKm > filters.maxDist) return false;
+    if (filters.amenities.length > 0 && !filters.amenities.every(a => h.amenities.includes(a))) return false;
     return true;
-  }).sort((a,b) => {
-    if (sortIdx===1) return a.pricePerNight-b.pricePerNight;
-    if (sortIdx===2) return b.rating-a.rating;
-    return b.reviewCount-a.reviewCount;
+  }).sort((a, b) => {
+    if (sortIdx === 1) return a.pricePerNight - b.pricePerNight;
+    if (sortIdx === 2) return b.rating - a.rating;
+    return b.reviewCount - a.reviewCount;
   });
 
   const nightCount = () => {
-    if (!checkIn||!checkOut) return 1;
-    const d = (new Date(checkOut)-new Date(checkIn))/86400000;
-    return d>0?d:1;
+    if (!checkIn || !checkOut) return 1;
+    const d = (new Date(checkOut) - new Date(checkIn)) / 86400000;
+    return d > 0 ? d : 1;
   };
 
-  useEffect(() => { if(selectedHotel) setImgIdx(0); }, [selectedHotel]);
+  useEffect(() => { if (selectedHotel) setImgIdx(0); }, [selectedHotel]);
 
-  const styles = {
-    app:{fontFamily:"'Playfair Display','Noto Serif TC',Georgia,serif",background:cream,minHeight:"100vh",color:deepNavy,maxWidth:430,margin:"0 auto",position:"relative",paddingBottom:80},
-    header:{background:deepNavy,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:56,position:"sticky",top:0,zIndex:100},
-    appName:{color:gold,fontSize:22,fontWeight:700,letterSpacing:2},
-    langBtn:{background:"transparent",border:`1px solid ${gold}`,color:gold,borderRadius:20,padding:"3px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"},
-    searchBar:{background:deepNavy,padding:"0 20px 20px",display:"flex",flexDirection:"column",gap:10},
-    searchInput:{background:"rgba(255,255,255,0.1)",border:`1px solid rgba(184,145,58,0.4)`,borderRadius:10,padding:"10px 12px",color:"#fff",fontSize:13,fontFamily:"inherit",width:"100%",boxSizing:"border-box"},
-    searchBtn:{background:gold,border:"none",borderRadius:10,padding:"12px 0",color:deepNavy,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",width:"100%"},
-    filterBar:{display:"flex",gap:8,padding:"14px 20px",overflowX:"auto",borderBottom:`1px solid rgba(13,27,42,0.08)`},
-    chip:(active)=>({background:active?deepNavy:"#fff",color:active?gold:deepNavy,border:`1px solid ${active?deepNavy:"rgba(13,27,42,0.15)"}`,borderRadius:20,padding:"6px 14px",fontSize:12,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"inherit"}),
-    hotelCard:{background:"#fff",borderRadius:16,margin:"0 16px 16px",overflow:"hidden",boxShadow:"0 2px 20px rgba(13,27,42,0.08)",cursor:"pointer"},
-    hotelImg:{width:"100%",height:200,objectFit:"cover",display:"block"},
-    cardBody:{padding:"14px 16px 16px"},
-    hotelName:{fontSize:16,fontWeight:700,color:deepNavy,marginBottom:4},
-    price:{fontSize:20,fontWeight:700,color:gold},
-    rating:{background:deepNavy,color:gold,borderRadius:8,padding:"4px 10px",fontSize:13,fontWeight:700,fontFamily:"sans-serif"},
-    favBtn:(active)=>({background:"none",border:"none",cursor:"pointer",fontSize:20,color:active?gold:"#ccc",position:"absolute",top:12,right:12,textShadow:"0 1px 4px rgba(0,0,0,0.3)"}),
-    detailImg:{width:"100%",height:260,objectFit:"cover",display:"block"},
-    detailBody:{padding:"0 20px 20px"},
-    sectionTitle:{fontSize:16,fontWeight:700,color:deepNavy,margin:"18px 0 10px",borderBottom:`2px solid ${gold}`,paddingBottom:6,display:"inline-block"},
-    roomCard:(avail)=>({background:avail?"#fff":"#f5f5f5",border:`1px solid ${avail?gold:"#ddd"}`,borderRadius:12,padding:"12px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}),
-    bookBtn:(avail)=>({background:avail?gold:"#ccc",color:avail?deepNavy:"#999",border:"none",borderRadius:8,padding:"8px 16px",fontSize:12,fontWeight:700,cursor:avail?"pointer":"default",fontFamily:"inherit"}),
-    cancelBtn:{background:"#fff",color:"#C0392B",border:"1px solid #C0392B",borderRadius:8,padding:"8px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"},
-    reviewCard:{background:"#fff",borderRadius:12,padding:"14px 16px",marginBottom:10,boxShadow:"0 1px 8px rgba(13,27,42,0.06)"},
-    avatar:{width:36,height:36,borderRadius:18,background:deepNavy,color:gold,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0},
-    navbar:{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:deepNavy,display:"flex",borderTop:`1px solid rgba(184,145,58,0.2)`,zIndex:200},
-    navItem:(active)=>({flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 0 8px",cursor:"pointer",color:active?gold:"rgba(255,255,255,0.4)",fontSize:10,fontFamily:"sans-serif",gap:3}),
-    toast:(err)=>({position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",background:err?"#C0392B":"#0a7c5c",color:"#fff",padding:"12px 24px",borderRadius:12,fontSize:14,fontFamily:"sans-serif",zIndex:999,boxShadow:"0 4px 20px rgba(0,0,0,0.3)",maxWidth:340,textAlign:"center"}),
-    filterPanel:{background:"#fff",borderRadius:16,margin:"0 16px 16px",padding:"16px 20px",boxShadow:"0 2px 20px rgba(13,27,42,0.1)"},
-    notifCard:(bg)=>({background:bg,borderRadius:12,padding:"14px 16px",marginBottom:10,display:"flex",gap:12,alignItems:"flex-start"}),
-    notifIcon:(color)=>({width:36,height:36,borderRadius:18,background:color,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,flexShrink:0}),
-    amenityPill:{background:"#f0ece4",borderRadius:20,padding:"4px 12px",fontSize:12,fontFamily:"sans-serif",color:deepNavy,display:"inline-block"},
-    backBtn:{background:"none",border:"none",color:gold,fontSize:14,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,padding:"14px 20px 0"},
-    overlay:{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"},
-    modal:{background:"#fff",borderRadius:20,padding:28,width:"100%",maxWidth:360,textAlign:"center"},
+  const S = {
+    app: { fontFamily: "'Playfair Display','Noto Serif TC',Georgia,serif", background: cream, minHeight: "100vh", color: deepNavy, maxWidth: 430, margin: "0 auto", position: "relative", paddingBottom: 80 },
+    header: { background: deepNavy, padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 56, position: "sticky", top: 0, zIndex: 100 },
+    appName: { color: gold, fontSize: 22, fontWeight: 700, letterSpacing: 2 },
+    langBtn: { background: "transparent", border: `1px solid ${gold}`, color: gold, borderRadius: 20, padding: "3px 12px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" },
+    searchBar: { background: deepNavy, padding: "0 20px 20px", display: "flex", flexDirection: "column", gap: 10 },
+    inp: { background: "rgba(255,255,255,0.1)", border: "1px solid rgba(184,145,58,0.4)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" },
+    searchBtn: { background: gold, border: "none", borderRadius: 10, padding: "12px 0", color: deepNavy, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", width: "100%" },
+    filterBar: { display: "flex", gap: 8, padding: "14px 20px", overflowX: "auto", borderBottom: "1px solid rgba(13,27,42,0.08)" },
+    chip: (a) => ({ background: a ? deepNavy : "#fff", color: a ? gold : deepNavy, border: `1px solid ${a ? deepNavy : "rgba(13,27,42,0.15)"}`, borderRadius: 20, padding: "6px 14px", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }),
+    card: { background: "#fff", borderRadius: 16, margin: "0 16px 16px", overflow: "hidden", boxShadow: "0 2px 20px rgba(13,27,42,0.08)", cursor: "pointer" },
+    hotelImg: { width: "100%", height: 200, objectFit: "cover", display: "block" },
+    cardBody: { padding: "14px 16px 16px" },
+    hotelName: { fontSize: 16, fontWeight: 700, color: deepNavy, marginBottom: 4 },
+    price: { fontSize: 20, fontWeight: 700, color: gold },
+    ratingBadge: { background: deepNavy, color: gold, borderRadius: 8, padding: "4px 10px", fontSize: 13, fontWeight: 700, fontFamily: "sans-serif" },
+    favBtn: (a) => ({ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: a ? gold : "#ccc", position: "absolute", top: 12, right: 12, textShadow: "0 1px 4px rgba(0,0,0,0.3)" }),
+    detailImg: { width: "100%", height: 260, objectFit: "cover", display: "block" },
+    detailBody: { padding: "0 20px 20px" },
+    secTitle: { fontSize: 16, fontWeight: 700, color: deepNavy, margin: "18px 0 10px", borderBottom: `2px solid ${gold}`, paddingBottom: 6, display: "inline-block" },
+    roomCard: (a) => ({ background: a ? "#fff" : "#f5f5f5", border: `1px solid ${a ? gold : "#ddd"}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }),
+    bookBtn: (a) => ({ background: a ? gold : "#ccc", color: a ? deepNavy : "#999", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: a ? "pointer" : "default", fontFamily: "inherit" }),
+    cancelBtn: { background: "#fff", color: "#C0392B", border: "1px solid #C0392B", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+    reviewCard: { background: "#fff", borderRadius: 12, padding: "14px 16px", marginBottom: 10, boxShadow: "0 1px 8px rgba(13,27,42,0.06)" },
+    avatar: { width: 36, height: 36, borderRadius: 18, background: deepNavy, color: gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 },
+    navbar: { position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: deepNavy, display: "flex", borderTop: "1px solid rgba(184,145,58,0.2)", zIndex: 200 },
+    navItem: (a) => ({ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0 8px", cursor: "pointer", color: a ? gold : "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "sans-serif", gap: 3, position: "relative" }),
+    toast: (e) => ({ position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", background: e ? "#C0392B" : "#0a7c5c", color: "#fff", padding: "12px 24px", borderRadius: 12, fontSize: 14, fontFamily: "sans-serif", zIndex: 999, boxShadow: "0 4px 20px rgba(0,0,0,0.3)", maxWidth: 340, textAlign: "center" }),
+    filterPanel: { background: "#fff", borderRadius: 16, margin: "0 16px 16px", padding: "16px 20px", boxShadow: "0 2px 20px rgba(13,27,42,0.1)" },
+    notifCard: (bg) => ({ background: bg, borderRadius: 12, padding: "14px 16px", marginBottom: 10, display: "flex", gap: 12, alignItems: "flex-start" }),
+    notifIcon: (c) => ({ width: 36, height: 36, borderRadius: 18, background: c, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, flexShrink: 0 }),
+    pill: { background: "#f0ece4", borderRadius: 20, padding: "4px 12px", fontSize: 12, fontFamily: "sans-serif", color: deepNavy, display: "inline-block" },
+    backBtn: { background: "none", border: "none", color: gold, fontSize: 14, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, padding: "14px 20px 0" },
+    overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px" },
+    modal: { background: "#fff", borderRadius: 20, padding: 28, width: "100%", maxWidth: 360, textAlign: "center" },
   };
 
-  const renderStars = (n) => "★".repeat(n)+"☆".repeat(5-n);
+  const stars = (n) => "★".repeat(n) + "☆".repeat(5 - n);
 
-  // 取消確認 Modal
   const CancelModal = () => cancelTarget ? (
-    <div style={styles.overlay} onClick={() => setCancelTarget(null)}>
-      <div style={styles.modal} onClick={e=>e.stopPropagation()}>
-        <div style={{fontSize:32,marginBottom:12}}>🗑️</div>
-        <div style={{fontSize:16,fontWeight:700,marginBottom:8,color:deepNavy}}>{t.confirmCancel}</div>
-        <div style={{fontSize:13,color:"#666",fontFamily:"sans-serif",marginBottom:6}}>{cancelTarget.hotel.name[lang]}</div>
-        <div style={{fontSize:13,color:"#666",fontFamily:"sans-serif",marginBottom:20}}>{cancelTarget.room.name[lang]} · NT${cancelTarget.room.price.toLocaleString()}{t.perNight}</div>
-        <div style={{display:"flex",gap:10}}>
-          <button style={{...styles.cancelBtn,flex:1,padding:"12px 0",fontSize:14}} onClick={() => handleCancel(cancelTarget.key)}>{t.yes}</button>
-          <button style={{flex:1,background:gold,color:deepNavy,border:"none",borderRadius:8,padding:"12px 0",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}} onClick={() => setCancelTarget(null)}>{t.no}</button>
+    <div style={S.overlay} onClick={() => setCancelTarget(null)}>
+      <div style={S.modal} onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>🗑️</div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: deepNavy }}>{t.confirmCancel}</div>
+        <div style={{ fontSize: 14, color: "#555", fontFamily: "sans-serif", marginBottom: 4 }}>{cancelTarget.hotel.name[lang]}</div>
+        <div style={{ fontSize: 13, color: "#888", fontFamily: "sans-serif", marginBottom: 22 }}>{cancelTarget.room.name[lang]} · NT${cancelTarget.room.price.toLocaleString()}{t.perNight}</div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button style={{ ...S.cancelBtn, flex: 1, padding: "12px 0", fontSize: 14 }} onClick={() => handleCancel(cancelTarget.key)}>{t.yes}</button>
+          <button style={{ flex: 1, background: gold, color: deepNavy, border: "none", borderRadius: 8, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }} onClick={() => setCancelTarget(null)}>{t.no}</button>
         </div>
       </div>
     </div>
   ) : null;
+
+  const Navbar = () => (
+    <div style={S.navbar}>
+      {["explore", "map", "saved", "notifications", "account"].map((tb, i) => (
+        <div key={tb} style={S.navItem(tab === tb)} onClick={() => { setSelectedHotel(null); setTab(tb); }}>
+          <span style={{ fontSize: 20 }}>{["🏨", "🗺", "📋", "🔔", "👤"][i]}</span>
+          {tb === "saved" && bookings.length > 0 && (
+            <span style={{ position: "absolute", top: 6, right: "50%", marginRight: -18, background: "#C0392B", color: "#fff", borderRadius: 10, fontSize: 9, padding: "1px 5px", fontFamily: "sans-serif", fontWeight: 700 }}>{bookings.length}</span>
+          )}
+          <span>{t.nav[i]}</span>
+        </div>
+      ))}
+    </div>
+  );
 
   // 飯店詳情頁
   if (selectedHotel) {
     const h = selectedHotel;
     const nights = nightCount();
     return (
-      <div style={styles.app}>
+      <div style={S.app}>
         <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap');*{margin:0;padding:0;box-sizing:border-box;}`}</style>
-        <CancelModal/>
-        <div style={{position:"relative"}}>
-          <img src={h.images[imgIdx]} alt="" style={styles.detailImg}/>
-          <div style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6}}>
-            {h.images.map((_,i)=><div key={i} onClick={()=>setImgIdx(i)} style={{width:i===imgIdx?20:8,height:8,borderRadius:4,background:i===imgIdx?gold:"rgba(255,255,255,0.6)",cursor:"pointer",transition:"width 0.3s"}}/>)}
+        <CancelModal />
+        <div style={{ position: "relative" }}>
+          <img src={h.images[imgIdx]} alt="" style={S.detailImg} />
+          <div style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 6 }}>
+            {h.images.map((_, i) => <div key={i} onClick={() => setImgIdx(i)} style={{ width: i === imgIdx ? 20 : 8, height: 8, borderRadius: 4, background: i === imgIdx ? gold : "rgba(255,255,255,0.6)", cursor: "pointer", transition: "width 0.3s" }} />)}
           </div>
-          <button style={{...styles.backBtn,position:"absolute",top:12,left:0,background:"rgba(13,27,42,0.6)",borderRadius:"0 8px 8px 0",color:gold}} onClick={()=>setSelectedHotel(null)}>← {t.back}</button>
-          <button style={{position:"absolute",top:12,right:12,background:"none",border:"none",cursor:"pointer",fontSize:24,color:favorites.includes(h.id)?gold:"rgba(255,255,255,0.7)"}} onClick={()=>toggleFav(h.id)}>♥</button>
+          <button style={{ ...S.backBtn, position: "absolute", top: 12, left: 0, background: "rgba(13,27,42,0.65)", borderRadius: "0 8px 8px 0", color: gold }} onClick={() => setSelectedHotel(null)}>← {t.back}</button>
+          <button style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", cursor: "pointer", fontSize: 26, color: favorites.includes(h.id) ? gold : "rgba(255,255,255,0.7)" }} onClick={() => toggleFav(h.id)}>♥</button>
         </div>
-        <div style={styles.detailBody}>
-          <h1 style={{fontSize:22,fontWeight:700,marginTop:16,color:deepNavy}}>{h.name[lang]}</h1>
-          <div style={{color:gold,fontSize:14,margin:"4px 0 8px"}}>{renderStars(h.stars)}</div>
-          <div style={{display:"flex",gap:10,alignItems:"center",fontFamily:"sans-serif",fontSize:13,color:"#666"}}>
-            <span style={{background:deepNavy,color:gold,padding:"3px 10px",borderRadius:8,fontWeight:700}}>{h.rating}</span>
+        <div style={S.detailBody}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, marginTop: 16, color: deepNavy }}>{h.name[lang]}</h1>
+          <div style={{ color: gold, fontSize: 14, margin: "4px 0 8px" }}>{stars(h.stars)}</div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", fontFamily: "sans-serif", fontSize: 13, color: "#666" }}>
+            <span style={{ background: deepNavy, color: gold, padding: "3px 10px", borderRadius: 8, fontWeight: 700 }}>{h.rating}</span>
             <span>{h.reviewCount.toLocaleString()} {t.reviews}</span>
             <span>· {h.city[lang]} · {h.distanceKm} {t.km}</span>
           </div>
-          <div style={{marginTop:18}}>
-            <div style={styles.sectionTitle}>{t.description}</div>
-            <p style={{fontSize:14,lineHeight:1.7,color:"#555",fontFamily:"sans-serif",marginTop:8}}>{h.description[lang]}</p>
+          <div style={{ marginTop: 18 }}>
+            <div style={S.secTitle}>{t.description}</div>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: "#555", fontFamily: "sans-serif", marginTop: 8 }}>{h.description[lang]}</p>
           </div>
-          <div style={{marginTop:16}}>
-            <div style={styles.sectionTitle}>{t.amenities}</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
-              {h.amenities.map(a=><span key={a} style={styles.amenityPill}>{t.amenityList[a]}</span>)}
+          <div style={{ marginTop: 16 }}>
+            <div style={S.secTitle}>{t.amenities}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+              {h.amenities.map(a => <span key={a} style={S.pill}>{t.amenityList[a]}</span>)}
             </div>
           </div>
-          <div style={{marginTop:16}}>
-            <div style={styles.sectionTitle}>{t.roomTypes}</div>
-            {h.rooms.map((room,i)=>{
-              const bookingKey = `${h.id}-${room.name.en}`;
-              const booked = bookings.find(b=>b.key===bookingKey);
+          <div style={{ marginTop: 16 }}>
+            <div style={S.secTitle}>{t.roomTypes}</div>
+            {h.rooms.map((room, i) => {
+              const bkey = `${h.id}-${room.name.en}`;
+              const booked = bookings.find(b => b.key === bkey);
               return (
-                <div key={i} style={styles.roomCard(room.available)}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:15,fontWeight:700,color:deepNavy}}>{room.name[lang]}</div>
-                    <div style={{fontSize:13,color:room.available?"#0a7c5c":"#999",fontFamily:"sans-serif"}}>{room.available?t.available:t.unavailable}</div>
-                    <div style={{fontSize:16,fontWeight:700,color:gold,marginTop:4}}>
-                      NT${room.price.toLocaleString()} <span style={{fontSize:12,color:"#888",fontWeight:400}}>{t.perNight}</span>
-                    </div>
-                    {checkIn&&checkOut&&<div style={{fontSize:12,color:"#888",fontFamily:"sans-serif"}}>{t.total}: NT${(room.price*nights).toLocaleString()} ({nights}{t.nights})</div>}
+                <div key={i} style={S.roomCard(room.available)}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: deepNavy }}>{room.name[lang]}</div>
+                    <div style={{ fontSize: 13, color: room.available ? "#0a7c5c" : "#999", fontFamily: "sans-serif" }}>{room.available ? t.available : t.unavailable}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: gold, marginTop: 4 }}>NT${room.price.toLocaleString()} <span style={{ fontSize: 12, color: "#888", fontWeight: 400 }}>{t.perNight}</span></div>
+                    {checkIn && checkOut && <div style={{ fontSize: 12, color: "#888", fontFamily: "sans-serif" }}>{t.total}: NT${(room.price * nights).toLocaleString()} ({nights}{t.nights})</div>}
                   </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
                     {booked ? (
                       <>
-                        <div style={{fontSize:11,color:"#0a7c5c",fontFamily:"sans-serif",fontWeight:700}}>✓ {t.booked}</div>
-                        <button style={styles.cancelBtn} onClick={()=>setCancelTarget(booked)}>{t.cancelBooking}</button>
+                        <div style={{ fontSize: 11, color: "#0a7c5c", fontFamily: "sans-serif", fontWeight: 700 }}>✓ {t.booked}</div>
+                        <button style={S.cancelBtn} onClick={() => setCancelTarget(booked)}>{t.cancelBooking}</button>
                       </>
                     ) : (
-                      <button style={styles.bookBtn(room.available)} onClick={()=>handleBook(h,room)} disabled={!room.available}>{t.bookNow}</button>
+                      <button style={S.bookBtn(room.available)} onClick={() => handleBook(h, room)} disabled={!room.available}>{t.bookNow}</button>
                     )}
                   </div>
                 </div>
               );
             })}
           </div>
-          <div style={{marginTop:16}}>
-            <div style={styles.sectionTitle}>{t.nearby}</div>
-            <div style={{background:"#e8e0d5",borderRadius:12,padding:16,marginTop:10,fontFamily:"sans-serif"}}>
-              <div style={{fontSize:12,color:"#888",marginBottom:8}}>📍 {h.city[lang]}</div>
-              {h.nearby.map((n,i)=><div key={i} style={{fontSize:13,color:deepNavy,padding:"4px 0",borderBottom:i<h.nearby.length-1?"1px dashed #ccc":"none"}}>📌 {n[lang]}</div>)}
+          <div style={{ marginTop: 16 }}>
+            <div style={S.secTitle}>{t.nearby}</div>
+            <div style={{ background: "#e8e0d5", borderRadius: 12, padding: 16, marginTop: 10, fontFamily: "sans-serif" }}>
+              <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>📍 {h.city[lang]}</div>
+              {h.nearby.map((n, i) => <div key={i} style={{ fontSize: 13, color: deepNavy, padding: "4px 0", borderBottom: i < h.nearby.length - 1 ? "1px dashed #ccc" : "none" }}>📌 {n[lang]}</div>)}
             </div>
           </div>
-          <div style={{marginTop:16}}>
-            <div style={styles.sectionTitle}>{t.guestReviews}</div>
-            {h.reviews.map((r,i)=>(
-              <div key={i} style={styles.reviewCard}>
-                <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:8}}>
-                  <div style={styles.avatar}>{r.avatar}</div>
-                  <div><div style={{fontSize:14,fontWeight:700}}>{r.name}</div><div style={{color:gold,fontSize:12}}>{"★".repeat(r.rating)}</div></div>
-                  <div style={{marginLeft:"auto",fontSize:12,color:"#999",fontFamily:"sans-serif"}}>{r.date}</div>
+          <div style={{ marginTop: 16 }}>
+            <div style={S.secTitle}>{t.guestReviews}</div>
+            {h.reviews.map((r, i) => (
+              <div key={i} style={S.reviewCard}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
+                  <div style={S.avatar}>{r.avatar}</div>
+                  <div><div style={{ fontSize: 14, fontWeight: 700 }}>{r.name}</div><div style={{ color: gold, fontSize: 12 }}>{"★".repeat(r.rating)}</div></div>
+                  <div style={{ marginLeft: "auto", fontSize: 12, color: "#999", fontFamily: "sans-serif" }}>{r.date}</div>
                 </div>
-                <p style={{fontSize:13,color:"#555",lineHeight:1.6,fontFamily:"sans-serif"}}>{r.text[lang]}</p>
+                <p style={{ fontSize: 13, color: "#555", lineHeight: 1.6, fontFamily: "sans-serif" }}>{r.text[lang]}</p>
               </div>
             ))}
           </div>
         </div>
-        {toast&&<div style={styles.toast(toast.isError)}>{toast.msg}</div>}
-        <div style={styles.navbar}>
-          {["explore","map","saved","notifications","account"].map((tb,i)=>(
-            <div key={tb} style={styles.navItem(tab===tb)} onClick={()=>{setSelectedHotel(null);setTab(tb);}}>
-              <span style={{fontSize:20}}>{["🏨","🗺","📋","🔔","👤"][i]}</span>
-              <span>{t.nav[i]}</span>
-            </div>
-          ))}
-        </div>
+        {toast && <div style={S.toast(toast.isError)}>{toast.msg}</div>}
+        <Navbar />
       </div>
     );
   }
 
   return (
-    <div style={styles.app}>
+    <div style={S.app}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap');*{margin:0;padding:0;box-sizing:border-box;}input[type=range]{width:100%;accent-color:${gold};}select{appearance:none;}`}</style>
-      <CancelModal/>
-
-      <div style={styles.header}>
-        <div style={styles.appName}>{t.appName}</div>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{color:"rgba(255,255,255,0.5)",fontSize:11,fontFamily:"sans-serif"}}>{t.tagline}</div>
-          <button style={styles.langBtn} onClick={()=>setLang(l=>l==="zh"?"en":"zh")}>{lang==="zh"?"EN":"中文"}</button>
+      <CancelModal />
+      <div style={S.header}>
+        <div style={S.appName}>{t.appName}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontFamily: "sans-serif" }}>{t.tagline}</div>
+          <button style={S.langBtn} onClick={() => setLang(l => l === "zh" ? "en" : "zh")}>{lang === "zh" ? "EN" : "中文"}</button>
         </div>
       </div>
 
-      {(tab==="explore"||tab==="map")&&(
-        <div style={styles.searchBar}>
-          <select value={searchCity} onChange={e=>setSearchCity(e.target.value)} style={{...styles.searchInput,fontSize:14}}>
-            {CITIES.map(c=><option key={c.key} value={c.key}>{c[lang]}</option>)}
+      {(tab === "explore" || tab === "map") && (
+        <div style={S.searchBar}>
+          <select value={searchCity} onChange={e => setSearchCity(e.target.value)} style={{ ...S.inp, fontSize: 14 }}>
+            {CITIES.map(c => <option key={c.key} value={c.key}>{c[lang]}</option>)}
           </select>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-            <input type="date" value={checkIn} onChange={e=>setCheckIn(e.target.value)} style={styles.searchInput}/>
-            <input type="date" value={checkOut} onChange={e=>setCheckOut(e.target.value)} style={styles.searchInput}/>
-            <select value={guests} onChange={e=>setGuests(e.target.value)} style={styles.searchInput}>
-              {[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n}人</option>)}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} style={S.inp} />
+            <input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} style={S.inp} />
+            <select value={guests} onChange={e => setGuests(e.target.value)} style={S.inp}>
+              {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n}人</option>)}
             </select>
           </div>
-          <button style={styles.searchBtn}>{t.search}</button>
+          <button style={S.searchBtn}>{t.search}</button>
         </div>
       )}
 
-      {tab==="explore"&&(
+      {tab === "explore" && (
         <>
-          <div style={styles.filterBar}>
-            <button style={styles.chip(showFilters)} onClick={()=>setShowFilters(s=>!s)}>⚙ {t.filters}</button>
-            {t.sortOptions.map((s,i)=><button key={i} style={styles.chip(sortIdx===i)} onClick={()=>setSortIdx(i)}>{s}</button>)}
-            <button style={styles.chip(false)} onClick={()=>setTab("map")}>🗺 {t.worldMap}</button>
+          <div style={S.filterBar}>
+            <button style={S.chip(showFilters)} onClick={() => setShowFilters(s => !s)}>⚙ {t.filters}</button>
+            {t.sortOptions.map((s, i) => <button key={i} style={S.chip(sortIdx === i)} onClick={() => setSortIdx(i)}>{s}</button>)}
+            <button style={S.chip(false)} onClick={() => setTab("map")}>🗺 {t.worldMap}</button>
           </div>
-          {showFilters&&(
-            <div style={styles.filterPanel}>
-              <div style={{fontSize:13,fontWeight:700,marginBottom:12}}>{t.filters}</div>
-              <div style={{marginBottom:12}}>
-                <div style={{fontSize:12,color:"#888",fontFamily:"sans-serif",marginBottom:6}}>{t.priceRange}: NT${filters.maxPrice.toLocaleString()}</div>
-                <input type="range" min={10000} max={1000000} step={10000} value={filters.maxPrice} onChange={e=>setFilters(f=>({...f,maxPrice:+e.target.value}))}/>
+          {showFilters && (
+            <div style={S.filterPanel}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>{t.filters}</div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: "#888", fontFamily: "sans-serif", marginBottom: 6 }}>{t.priceRange}: NT${filters.maxPrice.toLocaleString()}</div>
+                <input type="range" min={10000} max={1000000} step={10000} value={filters.maxPrice} onChange={e => setFilters(f => ({ ...f, maxPrice: +e.target.value }))} />
               </div>
-              <div style={{marginBottom:12}}>
-                <div style={{fontSize:12,color:"#888",fontFamily:"sans-serif",marginBottom:6}}>{t.distance}: {filters.maxDist} {t.km}</div>
-                <input type="range" min={0.5} max={10} step={0.5} value={filters.maxDist} onChange={e=>setFilters(f=>({...f,maxDist:+e.target.value}))}/>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: "#888", fontFamily: "sans-serif", marginBottom: 6 }}>{t.distance}: {filters.maxDist} {t.km}</div>
+                <input type="range" min={0.5} max={10} step={0.5} value={filters.maxDist} onChange={e => setFilters(f => ({ ...f, maxDist: +e.target.value }))} />
               </div>
-              <div style={{marginBottom:12}}>
-                <div style={{fontSize:12,color:"#888",fontFamily:"sans-serif",marginBottom:6}}>{t.starRating}</div>
-                <div style={{display:"flex",gap:8}}>
-                  {[t.allStars,"5","4"].map(s=><button key={s} style={styles.chip(filters.stars===s||(s===t.allStars&&filters.stars==="all"))} onClick={()=>setFilters(f=>({...f,stars:s===t.allStars?"all":s}))}>{s===t.allStars?s:"★".repeat(+s)}</button>)}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: "#888", fontFamily: "sans-serif", marginBottom: 6 }}>{t.starRating}</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[t.allStars, "5", "4"].map(s => <button key={s} style={S.chip(filters.stars === s || (s === t.allStars && filters.stars === "all"))} onClick={() => setFilters(f => ({ ...f, stars: s === t.allStars ? "all" : s }))}>{s === t.allStars ? s : "★".repeat(+s)}</button>)}
                 </div>
               </div>
               <div>
-                <div style={{fontSize:12,color:"#888",fontFamily:"sans-serif",marginBottom:6}}>{t.amenities}</div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                  {t.amenityList.map((a,i)=><button key={i} style={styles.chip(filters.amenities.includes(i))} onClick={()=>setFilters(f=>({...f,amenities:f.amenities.includes(i)?f.amenities.filter(x=>x!==i):[...f.amenities,i]}))}>{a}</button>)}
+                <div style={{ fontSize: 12, color: "#888", fontFamily: "sans-serif", marginBottom: 6 }}>{t.amenities}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {t.amenityList.map((a, i) => <button key={i} style={S.chip(filters.amenities.includes(i))} onClick={() => setFilters(f => ({ ...f, amenities: f.amenities.includes(i) ? f.amenities.filter(x => x !== i) : [...f.amenities, i] }))}>{a}</button>)}
                 </div>
               </div>
-              <div style={{display:"flex",gap:8,marginTop:14}}>
-                <button style={{...styles.searchBtn,flex:1,borderRadius:8,padding:"10px 0"}} onClick={()=>setShowFilters(false)}>{t.apply}</button>
-                <button style={{flex:1,background:"none",border:`1px solid ${deepNavy}`,borderRadius:8,padding:"10px 0",cursor:"pointer",fontFamily:"inherit",fontSize:14}} onClick={()=>{setFilters({city:"all",stars:"all",maxPrice:1000000,maxDist:10,amenities:[]});setShowFilters(false);}}>{t.clear}</button>
+              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                <button style={{ ...S.searchBtn, flex: 1, borderRadius: 8, padding: "10px 0" }} onClick={() => setShowFilters(false)}>{t.apply}</button>
+                <button style={{ flex: 1, background: "none", border: `1px solid ${deepNavy}`, borderRadius: 8, padding: "10px 0", cursor: "pointer", fontFamily: "inherit", fontSize: 14 }} onClick={() => { setFilters({ city: "all", stars: "all", maxPrice: 1000000, maxDist: 10, amenities: [] }); setShowFilters(false); }}>{t.clear}</button>
               </div>
             </div>
           )}
-          <div style={{padding:"14px 0 0"}}>
-            <div style={{padding:"0 16px",marginBottom:12,fontSize:13,color:"#888",fontFamily:"sans-serif"}}>{filtered.length} {lang==="zh"?"間飯店":"hotels found"}</div>
-            {filtered.map(h=>(
-              <div key={h.id} style={styles.hotelCard} onClick={()=>setSelectedHotel(h)}>
-                <div style={{position:"relative"}}>
-                  <img src={h.images[0]} alt={h.name[lang]} style={styles.hotelImg}/>
-                  <button style={styles.favBtn(favorites.includes(h.id))} onClick={e=>{e.stopPropagation();toggleFav(h.id);}}>♥</button>
-                  <div style={{position:"absolute",bottom:10,left:14,background:"rgba(13,27,42,0.75)",color:"#fff",borderRadius:8,padding:"3px 10px",fontSize:12,fontFamily:"sans-serif"}}>
-                    {h.city[lang]} · {h.distanceKm} km
-                  </div>
-                  {bookings.some(b=>b.hotel.id===h.id)&&(
-                    <div style={{position:"absolute",top:12,left:12,background:"#0a7c5c",color:"#fff",borderRadius:6,padding:"2px 8px",fontSize:11,fontFamily:"sans-serif"}}>✓ {t.booked}</div>
-                  )}
+          <div style={{ padding: "14px 0 0" }}>
+            <div style={{ padding: "0 16px", marginBottom: 12, fontSize: 13, color: "#888", fontFamily: "sans-serif" }}>{filtered.length} {lang === "zh" ? "間飯店" : "hotels found"}</div>
+            {filtered.map(h => (
+              <div key={h.id} style={S.card} onClick={() => setSelectedHotel(h)}>
+                <div style={{ position: "relative" }}>
+                  <img src={h.images[0]} alt={h.name[lang]} style={S.hotelImg} />
+                  <button style={S.favBtn(favorites.includes(h.id))} onClick={e => { e.stopPropagation(); toggleFav(h.id); }}>♥</button>
+                  <div style={{ position: "absolute", bottom: 10, left: 14, background: "rgba(13,27,42,0.75)", color: "#fff", borderRadius: 8, padding: "3px 10px", fontSize: 12, fontFamily: "sans-serif" }}>{h.city[lang]} · {h.distanceKm} km</div>
+                  {bookings.some(b => b.hotel.id === h.id) && <div style={{ position: "absolute", top: 12, left: 12, background: "#0a7c5c", color: "#fff", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontFamily: "sans-serif" }}>✓ {t.booked}</div>}
                 </div>
-                <div style={styles.cardBody}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div style={styles.hotelName}>{h.name[lang]}</div>
-                    <div style={styles.rating}>{h.rating}</div>
+                <div style={S.cardBody}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div style={S.hotelName}>{h.name[lang]}</div>
+                    <div style={S.ratingBadge}>{h.rating}</div>
                   </div>
-                  <div style={{color:gold,fontSize:13,marginBottom:6}}>{renderStars(h.stars)}</div>
-                  <div style={{fontSize:12,color:"#999",fontFamily:"sans-serif",marginBottom:10}}>{h.reviewCount.toLocaleString()} {t.reviews}</div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
-                    {h.amenities.slice(0,3).map(a=><span key={a} style={styles.amenityPill}>{t.amenityList[a]}</span>)}
+                  <div style={{ color: gold, fontSize: 13, marginBottom: 6 }}>{stars(h.stars)}</div>
+                  <div style={{ fontSize: 12, color: "#999", fontFamily: "sans-serif", marginBottom: 10 }}>{h.reviewCount.toLocaleString()} {t.reviews}</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                    {h.amenities.slice(0, 3).map(a => <span key={a} style={S.pill}>{t.amenityList[a]}</span>)}
                   </div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                      <div style={styles.price}>NT${h.pricePerNight.toLocaleString()}</div>
-                      <div style={{fontSize:12,color:"#888",fontFamily:"sans-serif"}}>{t.perNight}</div>
+                      <div style={S.price}>NT${h.pricePerNight.toLocaleString()}</div>
+                      <div style={{ fontSize: 12, color: "#888", fontFamily: "sans-serif" }}>{t.perNight}</div>
                     </div>
-                    <button style={styles.bookBtn(true)} onClick={e=>{e.stopPropagation();setSelectedHotel(h);}}>{t.viewDetails}</button>
+                    <button style={S.bookBtn(true)} onClick={e => { e.stopPropagation(); setSelectedHotel(h); }}>{t.viewDetails}</button>
                   </div>
                 </div>
               </div>
@@ -670,35 +663,33 @@ export default function App() {
         </>
       )}
 
-      {tab==="map"&&(
-        <div style={{padding:"14px 16px 0"}}>
-          <div style={{marginBottom:12}}>
-            <GoogleStyleMap hotels={filtered} onSelect={h=>setMapHotel(mapHotel?.id===h.id?null:h)} selected={mapHotel} lang={lang}/>
-          </div>
-          {mapHotel&&(
-            <div style={{background:"#fff",borderRadius:12,padding:"12px 14px",marginBottom:12,display:"flex",gap:12,alignItems:"center",cursor:"pointer",boxShadow:"0 2px 12px rgba(13,27,42,0.1)"}} onClick={()=>setSelectedHotel(mapHotel)}>
-              <img src={mapHotel.images[0]} style={{width:64,height:64,borderRadius:10,objectFit:"cover"}} alt=""/>
-              <div style={{flex:1}}>
-                <div style={{fontSize:14,fontWeight:700}}>{mapHotel.name[lang]}</div>
-                <div style={{color:gold,fontSize:12}}>{renderStars(mapHotel.stars)}</div>
-                <div style={{fontSize:13,color:gold,fontWeight:700}}>NT${mapHotel.pricePerNight.toLocaleString()} {t.perNight}</div>
+      {tab === "map" && (
+        <div style={{ padding: "14px 16px 0" }}>
+          <GoogleStyleMap hotels={filtered} onSelect={h => setMapHotel(mapHotel?.id === h.id ? null : h)} selected={mapHotel} lang={lang} />
+          {mapHotel && (
+            <div style={{ background: "#fff", borderRadius: 12, padding: "12px 14px", marginTop: 12, display: "flex", gap: 12, alignItems: "center", cursor: "pointer", boxShadow: "0 2px 12px rgba(13,27,42,0.1)" }} onClick={() => setSelectedHotel(mapHotel)}>
+              <img src={mapHotel.images[0]} style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover" }} alt="" />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{mapHotel.name[lang]}</div>
+                <div style={{ color: gold, fontSize: 12 }}>{stars(mapHotel.stars)}</div>
+                <div style={{ fontSize: 13, color: gold, fontWeight: 700 }}>NT${mapHotel.pricePerNight.toLocaleString()} {t.perNight}</div>
               </div>
-              <div style={{color:gold,fontSize:20}}>›</div>
+              <div style={{ color: gold, fontSize: 20 }}>›</div>
             </div>
           )}
-          <div style={{marginTop:4}}>
-            {filtered.map(h=>(
-              <div key={h.id} style={{...styles.hotelCard,margin:"0 0 12px"}} onClick={()=>setSelectedHotel(h)}>
-                <div style={{display:"flex",gap:12,padding:14,alignItems:"center"}}>
-                  <img src={h.images[0]} style={{width:70,height:70,borderRadius:10,objectFit:"cover",flexShrink:0}} alt=""/>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:700}}>{h.name[lang]}</div>
-                    <div style={{color:gold,fontSize:12}}>{renderStars(h.stars)}</div>
-                    <div style={{fontSize:12,color:"#999",fontFamily:"sans-serif"}}>{h.city[lang]} · {h.distanceKm} km</div>
+          <div style={{ marginTop: 12 }}>
+            {filtered.map(h => (
+              <div key={h.id} style={{ ...S.card, margin: "0 0 12px" }} onClick={() => setSelectedHotel(h)}>
+                <div style={{ display: "flex", gap: 12, padding: 14, alignItems: "center" }}>
+                  <img src={h.images[0]} style={{ width: 70, height: 70, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} alt="" />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>{h.name[lang]}</div>
+                    <div style={{ color: gold, fontSize: 12 }}>{stars(h.stars)}</div>
+                    <div style={{ fontSize: 12, color: "#999", fontFamily: "sans-serif" }}>{h.city[lang]} · {h.distanceKm} km</div>
                   </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:15,fontWeight:700,color:gold}}>NT${h.pricePerNight.toLocaleString()}</div>
-                    <div style={{fontSize:11,color:"#999",fontFamily:"sans-serif"}}>{t.perNight}</div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: gold }}>NT${h.pricePerNight.toLocaleString()}</div>
+                    <div style={{ fontSize: 11, color: "#999", fontFamily: "sans-serif" }}>{t.perNight}</div>
                   </div>
                 </div>
               </div>
@@ -707,88 +698,79 @@ export default function App() {
         </div>
       )}
 
-      {tab==="saved"&&(
-        <div style={{padding:"20px 16px"}}>
-          <h2 style={{fontSize:20,fontWeight:700,marginBottom:4,color:deepNavy}}>{t.yourBookings}</h2>
-          <div style={{fontSize:13,color:"#888",fontFamily:"sans-serif",marginBottom:16}}>{bookings.length} {lang==="zh"?"筆預訂":"bookings"}</div>
-          {bookings.length===0&&<div style={{color:"#999",fontFamily:"sans-serif",fontSize:14,textAlign:"center",padding:40}}>{t.noBookings}</div>}
-          {bookings.map((b,i)=>(
-            <div key={i} style={{...styles.hotelCard,margin:"0 0 14px"}}>
-              <div style={{display:"flex",gap:12,padding:14}} onClick={()=>setSelectedHotel(b.hotel)} >
-                <img src={b.hotel.images[0]} style={{width:70,height:70,borderRadius:10,objectFit:"cover",flexShrink:0}} alt=""/>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:14,fontWeight:700}}>{b.hotel.name[lang]}</div>
-                  <div style={{fontSize:13,color:"#666",fontFamily:"sans-serif"}}>{b.room.name[lang]}</div>
-                  {b.checkIn&&<div style={{fontSize:12,color:"#999",fontFamily:"sans-serif"}}>{b.checkIn} → {b.checkOut}</div>}
-                  <div style={{fontSize:13,fontWeight:700,color:gold}}>NT${b.room.price.toLocaleString()}{t.perNight}</div>
-                  <div style={{fontSize:12,background:"#e1f5ee",color:"#0a7c5c",display:"inline-block",borderRadius:6,padding:"2px 8px",marginTop:4,fontFamily:"sans-serif"}}>✓ Confirmed</div>
+      {tab === "saved" && (
+        <div style={{ padding: "20px 16px" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4, color: deepNavy }}>{t.yourBookings}</h2>
+          <div style={{ fontSize: 13, color: "#888", fontFamily: "sans-serif", marginBottom: 16 }}>{bookings.length} {lang === "zh" ? "筆預訂" : "bookings"}</div>
+          {bookings.length === 0 && <div style={{ color: "#999", fontFamily: "sans-serif", fontSize: 14, textAlign: "center", padding: 40 }}>{t.noBookings}</div>}
+          {bookings.map((b, i) => (
+            <div key={i} style={{ ...S.card, margin: "0 0 14px" }}>
+              <div style={{ display: "flex", gap: 12, padding: 14 }} onClick={() => setSelectedHotel(b.hotel)}>
+                <img src={b.hotel.images[0]} style={{ width: 70, height: 70, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} alt="" />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{b.hotel.name[lang]}</div>
+                  <div style={{ fontSize: 13, color: "#666", fontFamily: "sans-serif" }}>{b.room.name[lang]}</div>
+                  {b.checkIn && <div style={{ fontSize: 12, color: "#999", fontFamily: "sans-serif" }}>{b.checkIn} → {b.checkOut}</div>}
+                  <div style={{ fontSize: 13, fontWeight: 700, color: gold }}>NT${b.room.price.toLocaleString()}{t.perNight}</div>
+                  <div style={{ fontSize: 12, background: "#e1f5ee", color: "#0a7c5c", display: "inline-block", borderRadius: 6, padding: "2px 8px", marginTop: 4, fontFamily: "sans-serif" }}>✓ Confirmed</div>
                 </div>
               </div>
-              <div style={{padding:"0 14px 14px",display:"flex",justifyContent:"flex-end"}}>
-                <button style={styles.cancelBtn} onClick={()=>setCancelTarget(b)}>{t.cancelBooking}</button>
+              <div style={{ padding: "0 14px 14px", display: "flex", justifyContent: "flex-end" }}>
+                <button style={S.cancelBtn} onClick={() => setCancelTarget(b)}>{t.cancelBooking}</button>
               </div>
             </div>
           ))}
-
-          <h2 style={{fontSize:20,fontWeight:700,margin:"24px 0 16px",color:deepNavy}}>❤ {t.markFav}</h2>
-          {HOTELS.filter(h=>favorites.includes(h.id)).map(h=>(
-            <div key={h.id} style={{...styles.hotelCard,margin:"0 0 12px"}} onClick={()=>setSelectedHotel(h)}>
-              <div style={{display:"flex",gap:12,padding:14,alignItems:"center"}}>
-                <img src={h.images[0]} style={{width:60,height:60,borderRadius:8,objectFit:"cover"}} alt=""/>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:14,fontWeight:700}}>{h.name[lang]}</div>
-                  <div style={{color:gold,fontSize:12}}>{renderStars(h.stars)}</div>
-                  <div style={{fontSize:13,fontWeight:700,color:gold}}>NT${h.pricePerNight.toLocaleString()} {t.perNight}</div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, margin: "24px 0 16px", color: deepNavy }}>❤ {t.markFav}</h2>
+          {HOTELS.filter(h => favorites.includes(h.id)).map(h => (
+            <div key={h.id} style={{ ...S.card, margin: "0 0 12px" }} onClick={() => setSelectedHotel(h)}>
+              <div style={{ display: "flex", gap: 12, padding: 14, alignItems: "center" }}>
+                <img src={h.images[0]} style={{ width: 60, height: 60, borderRadius: 8, objectFit: "cover" }} alt="" />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{h.name[lang]}</div>
+                  <div style={{ color: gold, fontSize: 12 }}>{stars(h.stars)}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: gold }}>NT${h.pricePerNight.toLocaleString()} {t.perNight}</div>
                 </div>
-                <button style={{background:"none",border:"none",color:gold,fontSize:22,cursor:"pointer"}} onClick={e=>{e.stopPropagation();toggleFav(h.id);}}>♥</button>
+                <button style={{ background: "none", border: "none", color: gold, fontSize: 22, cursor: "pointer" }} onClick={e => { e.stopPropagation(); toggleFav(h.id); }}>♥</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {tab==="notifications"&&(
-        <div style={{padding:"20px 16px"}}>
-          <h2 style={{fontSize:20,fontWeight:700,marginBottom:16,color:deepNavy}}>🔔 {t.notifications}</h2>
-          {notifs.map((n,i)=>(
-            <div key={n.id||i} style={styles.notifCard(n.bg)}>
-              <div style={styles.notifIcon(n.color)}>{n.icon}</div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:14,fontWeight:700,color:deepNavy}}>{lang==="zh"?n.titleZh:n.titleEn}</div>
-                <div style={{fontSize:13,color:"#555",fontFamily:"sans-serif",lineHeight:1.5,marginTop:3}}>{lang==="zh"?n.msgZh:n.msgEn}</div>
-                <div style={{fontSize:11,color:"#999",fontFamily:"sans-serif",marginTop:6}}>{n.time}</div>
+      {tab === "notifications" && (
+        <div style={{ padding: "20px 16px" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, color: deepNavy }}>🔔 {t.notifications}</h2>
+          {notifs.map((n, i) => (
+            <div key={n.id || i} style={S.notifCard(n.bg)}>
+              <div style={S.notifIcon(n.color)}>{n.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: deepNavy }}>{lang === "zh" ? n.titleZh : n.titleEn}</div>
+                <div style={{ fontSize: 13, color: "#555", fontFamily: "sans-serif", lineHeight: 1.5, marginTop: 3 }}>{lang === "zh" ? n.msgZh : n.msgEn}</div>
+                <div style={{ fontSize: 11, color: "#999", fontFamily: "sans-serif", marginTop: 6 }}>{n.time}</div>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {tab==="account"&&(
-        <div style={{padding:"20px 16px"}}>
-          <div style={{background:deepNavy,borderRadius:20,padding:"28px 24px",marginBottom:20,textAlign:"center"}}>
-            <div style={{width:72,height:72,borderRadius:36,background:gold,margin:"0 auto 14px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,fontWeight:700,color:deepNavy}}>VIP</div>
-            <div style={{color:"#fff",fontSize:18,fontWeight:700}}>{lang==="zh"?"尊貴會員":"Premium Member"}</div>
-            <div style={{color:"rgba(255,255,255,0.6)",fontSize:13,fontFamily:"sans-serif",marginTop:4}}>Gold Status · 2,580 pts</div>
+      {tab === "account" && (
+        <div style={{ padding: "20px 16px" }}>
+          <div style={{ background: deepNavy, borderRadius: 20, padding: "28px 24px", marginBottom: 20, textAlign: "center" }}>
+            <div style={{ width: 72, height: 72, borderRadius: 36, background: gold, margin: "0 auto 14px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 700, color: deepNavy }}>VIP</div>
+            <div style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>{lang === "zh" ? "尊貴會員" : "Premium Member"}</div>
+            <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontFamily: "sans-serif", marginTop: 4 }}>Gold Status · 2,580 pts</div>
           </div>
-          {[[lang==="zh"?"我的預訂":"My Bookings",bookings.length],[lang==="zh"?"已收藏":"Saved Hotels",favorites.length],[lang==="zh"?"積分":"Points","2,580"]].map(([label,val])=>(
-            <div key={label} style={{background:"#fff",borderRadius:12,padding:"16px 20px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:15}}>{label}</span>
-              <span style={{fontSize:15,fontWeight:700,color:gold,fontFamily:"sans-serif"}}>{val}</span>
+          {[[lang === "zh" ? "我的預訂" : "My Bookings", bookings.length], [lang === "zh" ? "已收藏" : "Saved Hotels", favorites.length], [lang === "zh" ? "積分" : "Points", "2,580"]].map(([label, val]) => (
+            <div key={label} style={{ background: "#fff", borderRadius: 12, padding: "16px 20px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 15 }}>{label}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: gold, fontFamily: "sans-serif" }}>{val}</span>
             </div>
           ))}
         </div>
       )}
 
-      {toast&&<div style={styles.toast(toast.isError)}>{toast.msg}</div>}
-      <div style={styles.navbar}>
-        {["explore","map","saved","notifications","account"].map((tb,i)=>(
-          <div key={tb} style={styles.navItem(tab===tb)} onClick={()=>setTab(tb)}>
-            <span style={{fontSize:20}}>{["🏨","🗺","📋","🔔","👤"][i]}</span>
-            {tb==="saved"&&bookings.length>0&&<span style={{position:"absolute",background:"#C0392B",color:"#fff",borderRadius:10,fontSize:9,padding:"1px 5px",fontFamily:"sans-serif",marginTop:-18,marginLeft:10}}>{bookings.length}</span>}
-            <span>{t.nav[i]}</span>
-          </div>
-        ))}
-      </div>
+      {toast && <div style={S.toast(toast.isError)}>{toast.msg}</div>}
+      <Navbar />
     </div>
   );
 }
